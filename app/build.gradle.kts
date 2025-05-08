@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.material)
     implementation(libs.support.annotations)
+    implementation(libs.androidx.monitor)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

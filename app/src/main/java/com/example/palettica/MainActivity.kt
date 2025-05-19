@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -51,6 +53,45 @@ import androidx.core.graphics.toColorInt
 import com.example.palettica.ui.theme.PaletticaTheme
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
+import android.content.Context
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+val Context.dataStore by preferencesDataStore(name = "color_storage")
+
+object ColorStorage {
+    private val SAVED_COLORS_KEY = stringSetPreferencesKey("saved_colors")
+
+    fun getSavedColors(context: Context): Flow<Set<String>> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SAVED_COLORS_KEY] ?: emptySet()
+        }
+    }
+
+    suspend fun saveColor(context: Context, hex: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[SAVED_COLORS_KEY]?.toMutableSet() ?: mutableSetOf()
+            current.add(hex)
+            prefs[SAVED_COLORS_KEY] = current
+        }
+    }
+
+    suspend fun deleteColor(context: Context, hex: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[SAVED_COLORS_KEY]?.toMutableSet() ?: mutableSetOf()
+            current.remove(hex)
+            prefs[SAVED_COLORS_KEY] = current
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +127,14 @@ fun ColorMixDemo() {
     val clipboardManager = LocalClipboardManager.current
     val controller = rememberColorPickerController()
     val myCardColor = Color.White
+    val context = LocalContext.current
 
+    LaunchedEffect(Unit) {
+        ColorStorage.getSavedColors(context).collect { hexSet ->
+            savedColors.clear()
+            savedColors.addAll(hexSet.mapNotNull { runCatching { Color(it.toColorInt()) }.getOrNull() })
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -131,12 +179,20 @@ fun ColorMixDemo() {
                         Box(
                             modifier = Modifier
                                 .size(100.dp)
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(mixedColor)
-                                .border(1.dp, Color.Black),
+                                .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
+
                         )
 
                         Button(onClick = {
-                            savedColors.add(mixedColor)
+                            val hex = "#${mixedColor.toArgb().toUInt().toString(16).uppercase().takeLast(6)}"
+                            if (!savedColors.contains(mixedColor)) {
+                                savedColors.add(mixedColor)
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    ColorStorage.saveColor(context, hex)
+                                }
+                            }
                         }) {
                             Text("Save Color")
                         }
@@ -154,8 +210,9 @@ fun ColorMixDemo() {
                                         Box(
                                             modifier = Modifier
                                                 .size(60.dp)
+                                                .clip(RoundedCornerShape(16.dp))
                                                 .background(color)
-                                                .border(1.dp, Color.Black)
+                                                .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
                                         )
                                         Text(
                                             text = "#${color.toArgb().toUInt().toString(16).uppercase().takeLast(6)}",
@@ -167,10 +224,17 @@ fun ColorMixDemo() {
                                                 }
                                                 .padding(top = 4.dp)
                                         )
-                                        IconButton(onClick = { savedColors.removeAt(index) }) {
+                                        IconButton(onClick = {
+                                            val hex = "#${color.toArgb().toUInt().toString(16).uppercase().takeLast(6)}"
+                                            savedColors.removeAt(index)
+                                            CoroutineScope(Dispatchers.IO).launch {
+                                                ColorStorage.deleteColor(context, hex)
+                                            }
+                                        }) {
                                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                                         }
                                     }
+
                                 }
                             }
                         }
@@ -228,19 +292,21 @@ fun ColorMixDemo() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Button(onClick = {
-                    try {
+                Button(
+                    enabled=hexInput!="",
+                    onClick = {
+                        try {
                         val parsed = Color(hexInput.toColorInt())
                         unmixColor = parsed
-                    } catch (e: IllegalArgumentException) {
-                        inputError = true
-                    }
+                        } catch (e: IllegalArgumentException) {
+                            inputError = true
+                        }
                 }) {
                     Text("Confirm")
                 }
 
                 if (inputError) {
-                    Text("Invalid hex code", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
+                    Text("Invalid hex code!", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
                 }
 
                 unmixColor?.let { color ->
@@ -249,8 +315,10 @@ fun ColorMixDemo() {
                     Box(
                         modifier = Modifier
                             .size(100.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(color)
-                            .border(2.dp, Color.Black)
+                            .border(2.dp, Color.Black, RoundedCornerShape(16.dp))
+
                     )
                 }
 
@@ -275,14 +343,17 @@ fun ColorMixDemo() {
                     Box(
                         modifier = Modifier
                             .size(60.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(guessA)
-                            .border(1.dp, Color.Black)
+                            .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
+
                     )
                     Box(
                         modifier = Modifier
                             .size(60.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(guessB)
-                            .border(1.dp, Color.Black)
+                            .border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
                     )
                 }
 
@@ -339,9 +410,10 @@ fun ColorDisplayBox(color: Color, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(80.dp)
+            .clip(RoundedCornerShape(16.dp))
             .background(color)
             .clickable { onClick() }
-            .border(1.dp, Color.Black),
+            .border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
     ){}
 }
@@ -394,4 +466,5 @@ fun colorDistance(c1: Color, c2: Color): Float {
     val db = c1.blue - c2.blue
     return dr * dr + dg * dg + db * db
 }
+
 

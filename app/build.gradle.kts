@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.support.annotations)
     implementation(libs.androidx.monitor)
+    implementation(libs.androidx.datastore.preferences.core.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,4 +62,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation ("com.github.skydoves:colorpicker-compose:1.0.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.6")
 }

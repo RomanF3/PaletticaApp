@@ -1,18 +1,19 @@
 [versions]
-agp = "8.9.1"
+agp = "8.9.3"
 colorpickerCompose = "1.0.4"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.7"
+lifecycleRuntimeKtx = "2.9.0"
 activityCompose = "1.10.1"
-composeBom = "2024.09.00"
+composeBom = "2025.05.00"
 fragment = "1.8.6"
 material = "1.12.0"
 supportAnnotations = "28.0.0"
 monitor = "1.7.2"
+datastorePreferencesCoreAndroid = "1.1.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ androidx-fragment = { group = "androidx.fragment", name = "fragment", version.re
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 support-annotations = { group = "com.android.support", name = "support-annotations", version.ref = "supportAnnotations" }
 androidx-monitor = { group = "androidx.test", name = "monitor", version.ref = "monitor" }
+androidx-datastore-preferences-core-android = { group = "androidx.datastore", name = "datastore-preferences-core-android", version.ref = "datastorePreferencesCoreAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -386,8 +386,7 @@ fun ColorDisplayBox(color: Color, onClick: () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .background(color)
             .clickable { onClick() }
-            .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
-            .background(CardBackgroundColor),
+            .border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center
     ) {}
 }
